@@ -1,3 +1,4 @@
-import { User } from '@prisma/client';
+import { OmitType } from '@nestjs/swagger';
+import { UserEntity } from '../entities/User.entity';
 
-export type UserResponse = Omit<User, 'password_hash'>;
+export class UserResponseDto extends OmitType(UserEntity, ['password_hash']) {}
