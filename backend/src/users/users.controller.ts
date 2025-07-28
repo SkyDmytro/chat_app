@@ -1,11 +1,19 @@
-import { Controller, Get, NotFoundException, Req } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  NotFoundException,
+  Req,
+  UseGuards,
+} from '@nestjs/common';
 import { UsersService } from './users.service';
 import { Request } from 'express';
 import { Logger } from 'nestjs-pino';
 import { ApiBearerAuth, ApiOkResponse } from '@nestjs/swagger';
 import { UserResponseDto } from './dto/user-response.dto';
+import { JwtAuthGuard } from 'src/authentication/guards/jwt-auth.guard';
 
 @ApiBearerAuth()
+@UseGuards(JwtAuthGuard)
 @Controller('users')
 export class UsersController {
   constructor(

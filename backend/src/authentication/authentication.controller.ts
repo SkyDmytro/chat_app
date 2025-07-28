@@ -3,7 +3,6 @@ import { LocalAuthGuard } from './guards/local-auth.guard';
 import { AuthenticationService } from './authentication.service';
 import { RegisterUserDto } from './dto/register-user.dto';
 import { Request } from 'express';
-import { UserWithoutPassword } from './types/userWithoutPassword';
 import { ApiOkResponse } from '@nestjs/swagger';
 import { UserResponseDto } from 'src/users/dto/user-response.dto';
 
@@ -19,7 +18,7 @@ export class AuthenticationController {
   })
   @Post('login')
   login(@Req() req: Request) {
-    const user = req.user! as UserWithoutPassword;
+    const user = req.user!;
     return this.authService.login(user);
   }
   @ApiOkResponse({
