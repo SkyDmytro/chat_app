@@ -14,12 +14,38 @@ datasource db {
 }
 
 model User {
-  id            Int      @id @default(autoincrement())
-  email         String   @unique
+  id            Int       @id @default(autoincrement())
+  email         String    @unique
   password_hash String
   username      String
-  created_at    DateTime @default(now())
-  updated_at    DateTime @default(now())
+  created_at    DateTime  @default(now())
+  updated_at    DateTime  @updatedAt
+  chats         Chat[]    @relation("chat_participants")
+  Message       Message[]
 
   @@map("users")
+}
+
+model Chat {
+  id         Int       @id @default(autoincrement())
+  name       String
+  users      User[]    @relation("chat_participants")
+  messages   Message[]
+  created_at DateTime  @default(now())
+  updated_at DateTime  @updatedAt
+
+  @@map("chats")
+}
+
+model Message {
+  id         Int      @id @default(autoincrement())
+  chat_id    Int
+  sender_id  Int
+  content    String
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+  chat       Chat     @relation(fields: [chat_id], references: [id])
+  sender     User     @relation(fields: [sender_id], references: [id])
+
+  @@map("messages")
 }
