@@ -30,4 +30,8 @@ export class UsersService implements IUsersService {
   ): Promise<User> {
     return this.usersRepository.create(email, passwordHash, username);
   }
+
+  findAll(): Promise<User[] | null> {
+    return this.usersRepository.findAll();
+  }
 }

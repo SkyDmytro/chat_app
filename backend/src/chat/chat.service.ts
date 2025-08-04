@@ -1,6 +1,11 @@
-import { BadRequestException, Inject, Injectable } from '@nestjs/common';
+import {
+  BadRequestException,
+  Inject,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { IChatService } from './chat.service.interface';
-import { Chat } from '@prisma/client';
+import { Chat, Message } from '@prisma/client';
 import { CreateChatDto } from './dto/createChat.dto';
 import {
   ChatsRepositorySymbol,
@@ -8,6 +13,8 @@ import {
 } from './chat.repository.interface';
 import { UsersService } from 'src/users/users.service';
 import { Logger } from 'nestjs-pino';
+import { MessagesService } from 'src/messages/messages.service';
+import { UserWithoutPassword } from 'src/authentication/types/userWithoutPassword';
 
 @Injectable()
 export class ChatService implements IChatService {
@@ -16,6 +23,7 @@ export class ChatService implements IChatService {
     private readonly chatRepository: IChatRepository,
     private readonly usersService: UsersService,
     private readonly logger: Logger,
+    private readonly messagesService: MessagesService,
   ) {}
 
   async create(createChat: CreateChatDto): Promise<Chat> {
@@ -49,14 +57,26 @@ export class ChatService implements IChatService {
     }
   }
 
-  findById(chatId: number): Promise<Chat | null> {
+  async findById(
+    chatId: number,
+    user: UserWithoutPassword,
+  ): Promise<Chat | null> {
+    const isUserInChat = await this.chatRepository.isUserInChat(
+      chatId,
+      user.id,
+    );
+
+    if (!isUserInChat) {
+      throw new BadRequestException('User is not part of this chat');
+    }
+
     try {
       return this.chatRepository.findById(chatId);
     } catch (error) {
       this.logger.error(error, {
         chatId,
       });
-      throw new BadRequestException('Chat not found');
+      throw new NotFoundException('Chat not found');
     }
   }
 
@@ -69,5 +89,37 @@ export class ChatService implements IChatService {
       });
       throw new BadRequestException('Chats not found');
     }
+  }
+
+  async getMessagesByChatId(
+    chatId: number,
+    user: UserWithoutPassword,
+  ): Promise<Message[]> {
+    const chat = await this.chatRepository.findById(chatId);
+
+    if (!chat) {
+      throw new BadRequestException('Chat not found');
+    }
+
+    const isUserInChat = await this.chatRepository.isUserInChat(
+      chatId,
+      user.id,
+    );
+    if (!isUserInChat) {
+      throw new BadRequestException('User is not part of this chat');
+    }
+
+    try {
+      return this.messagesService.getMessagesByChatId(chatId);
+    } catch (error) {
+      this.logger.error(error, {
+        chatId,
+      });
+      throw new BadRequestException('Messages not found for this chat');
+    }
+  }
+
+  async isUserInChat(chatId: number, userId: number): Promise<boolean> {
+    return this.chatRepository.isUserInChat(chatId, userId);
   }
 }

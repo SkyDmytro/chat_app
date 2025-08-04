@@ -9,7 +9,7 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { ChatService } from './chat.service';
-import { Chat } from '@prisma/client';
+import { Chat, Message } from '@prisma/client';
 import { CreateChatDto } from './dto/createChat.dto';
 import { ApiBearerAuth } from '@nestjs/swagger';
 import { JwtAuthGuard } from 'src/authentication/guards/jwt-auth.guard';
@@ -22,7 +22,13 @@ export class ChatController {
   constructor(private readonly chatService: ChatService) {}
 
   @Post()
-  createChat(@Body() createChatDto: CreateChatDto): Promise<Chat> {
+  createChat(
+    @Req() req: Request,
+    @Body() createChatDto: CreateChatDto,
+  ): Promise<Chat> {
+    const user = req.user;
+
+    if (!user) throw new NotFoundException('User not found');
     return this.chatService.create(createChatDto);
   }
 
@@ -32,15 +38,22 @@ export class ChatController {
 
     if (!user) throw new NotFoundException('User not found');
 
-    try {
-      return this.chatService.findByUserId(user.id);
-    } catch (error) {
-      console.error('Error finding chats for user:', error);
-      throw new NotFoundException('Chats not found for user');
-    }
+    return this.chatService.findByUserId(user.id);
   }
+
+  @Get('messages/:chatId')
+  getMessagesByChatId(
+    @Param('chatId') id: number,
+    @Req() req: Request,
+  ): Promise<Message[]> {
+    const user = req.user!;
+    return this.chatService.getMessagesByChatId(id, user);
+  }
+
   @Get(':id')
-  findById(@Param('id') id: number): Promise<Chat | null> {
-    return this.chatService.findById(id);
+  findById(@Param('id') id: number, @Req() req: Request): Promise<Chat | null> {
+    const user = req.user!;
+
+    return this.chatService.findById(id, user);
   }
 }

@@ -40,4 +40,11 @@ export class UsersRepository implements IUsersRepository {
       },
     });
   }
+  findAll(includePassword: boolean = false): Promise<User[] | null> {
+    return this.prismaService.user.findMany({
+      omit: {
+        password_hash: !includePassword,
+      },
+    });
+  }
 }

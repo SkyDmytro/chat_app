@@ -7,4 +7,5 @@ export interface IChatRepository {
   create(chat: ChatEntity): Promise<Chat>;
   findByUserId(userId: number): Promise<Chat[]>;
   findById(chatId: number): Promise<Chat | null>;
+  isUserInChat(chatId: number, userId: number): Promise<boolean>;
 }

@@ -40,4 +40,29 @@ export class UsersController {
 
     return user;
   }
+  @Get('')
+  @ApiOkResponse({
+    description: 'Get the authenticated user',
+    type: UserResponseDto,
+    example: [
+      {
+        id: '12345',
+
+        email: 'email@email.com',
+        username: 'testuser',
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      },
+      {
+        id: '12',
+        email: 'email2@email.com',
+        username: 'testuser2',
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      },
+    ],
+  })
+  findAll() {
+    return this.usersService.findAll();
+  }
 }
