@@ -7,6 +7,7 @@ import { UsersModule } from './users/users.module';
 import { WebsocketModule } from './websocket/websocket.module';
 import { ChatModule } from './chat/chat.module';
 import { MessagesModule } from './messages/messages.module';
+import { UploadsModule } from './uploads/uploads.module';
 
 @Module({
   imports: [
@@ -25,6 +26,7 @@ import { MessagesModule } from './messages/messages.module';
     WebsocketModule,
     ChatModule,
     MessagesModule,
+    UploadsModule,
   ],
   controllers: [],
   providers: [],

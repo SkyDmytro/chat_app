@@ -96,7 +96,6 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
       client.emit('error', {
         message: errorMessage || 'Failed to send message',
       });
-      throw error;
       client.disconnect();
     }
   }
@@ -168,6 +167,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
         chatId,
         content: parsedData.content,
         senderId: user.id,
+        type: parsedData.type || 'text',
       };
 
       const message = await this.messagesService
@@ -194,7 +194,6 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
       client.emit('error', {
         message: errorMessage || 'Failed to send message',
       });
-      throw error;
     }
   }
 }

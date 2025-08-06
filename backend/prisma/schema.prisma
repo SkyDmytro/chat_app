@@ -39,6 +39,7 @@ model Chat {
 
 model Message {
   id         Int      @id @default(autoincrement())
+  type       String?  @default("text")
   chat_id    Int
   sender_id  Int
   content    String
