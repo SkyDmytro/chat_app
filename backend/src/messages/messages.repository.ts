@@ -13,6 +13,7 @@ export class MessagesRepository implements IMessagesRepository {
         content: message.content,
         sender_id: message.senderId,
         chat_id: message.chatId,
+        type: message.type || 'text',
       },
       include: {
         sender: {

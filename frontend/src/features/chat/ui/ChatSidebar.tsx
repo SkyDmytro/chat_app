@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Search, Plus } from "lucide-react";
 import { Input } from "@/shared/ui/input";
 import { Button } from "@/shared/ui/button";
@@ -19,10 +19,24 @@ export function ChatSidebar({
 }: ChatSidebarProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const navigate = useNavigate();
+  const [filteredChats, setFilteredChats] = useState<Chat[]>(chats);
 
   const handleRedirect = () => {
     navigate("/users");
   };
+
+  useEffect(() => {
+    if (searchQuery.trim() === "") {
+      setFilteredChats(chats);
+      return;
+    }
+
+    const lowerCaseQuery = searchQuery.toLowerCase();
+    const filtered = chats.filter((chat) =>
+      chat.name.toLowerCase().includes(lowerCaseQuery)
+    );
+    setFilteredChats(filtered);
+  }, [chats, searchQuery]);
 
   return (
     <div className="h-full bg-gray-900 flex flex-col">
@@ -54,8 +68,8 @@ export function ChatSidebar({
       </div>
 
       <div className="flex-1 overflow-y-auto">
-        {chats.length > 0 ? (
-          chats.map((chat) => (
+        {filteredChats.length > 0 ? (
+          filteredChats.map((chat) => (
             <ChatItem
               key={chat.id}
               chat={chat}

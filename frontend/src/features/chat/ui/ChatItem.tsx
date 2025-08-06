@@ -9,6 +9,14 @@ interface ChatItemProps {
 }
 
 export function ChatItem({ chat, isSelected, onClick }: ChatItemProps) {
+  const getLastMessage = (chat: Chat): string => {
+    if (!chat.messages || chat.messages.length === 0) return "No messages yet";
+    const lastMsg = chat.messages.at(-1);
+    if (!lastMsg) return "No messages yet";
+    if (lastMsg.type === "image") return "File";
+    return lastMsg.content;
+  };
+  const lastMessage = getLastMessage(chat);
   return (
     <div
       onClick={onClick}
@@ -29,12 +37,7 @@ export function ChatItem({ chat, isSelected, onClick }: ChatItemProps) {
           </span>
         </div>
         <div className="flex items-center justify-between">
-          <p className="text-sm text-gray-400 truncate">
-            {(chat.messages &&
-              chat.messages.length > 0 &&
-              chat?.messages.at(-1)?.content) ||
-              "No messages yet"}
-          </p>
+          <p className="text-sm text-gray-400 truncate">{lastMessage}</p>
         </div>
       </div>
     </div>
