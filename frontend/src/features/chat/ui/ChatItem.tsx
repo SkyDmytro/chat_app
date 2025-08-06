@@ -1,4 +1,4 @@
-import { cn } from "@/lib/utils";
+import { cn, formatDate } from "@/lib/utils";
 import { Avatar } from "@/shared/ui/avatar";
 import { type Chat } from "@/features/chat/model/types";
 
@@ -18,14 +18,14 @@ export function ChatItem({ chat, isSelected, onClick }: ChatItemProps) {
       )}
     >
       <div className="relative">
-        <Avatar />
+        <Avatar fallback={chat.name} />
       </div>
 
       <div className="flex-1 min-w-0">
         <div className="flex items-center justify-between mb-1">
           <h3 className="font-medium text-white truncate">{chat.name}</h3>
           <span className="text-xs text-gray-400 flex-shrink-0">
-            {new Date(chat.updated_at).toLocaleTimeString()}
+            {formatDate(chat.updated_at)}
           </span>
         </div>
         <div className="flex items-center justify-between">

@@ -20,9 +20,6 @@ export function ChatsPage() {
     getChats().then((data) => {
       const chats = data as Chat[];
       setChats(chats);
-      if (chats.length > 0) {
-        setSelectedChat(chats[0]);
-      }
     });
   }, [socketService]);
 

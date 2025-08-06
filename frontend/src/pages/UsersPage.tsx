@@ -4,6 +4,7 @@ import { useGetUsers } from "@/features/users/hooks/useGetUsers";
 import { type User } from "@/features/users/models/types";
 import { CreateChatModal } from "@/features/users/ui/CreateChatModal";
 import { UsersList } from "@/features/users/ui/UsersList";
+import { Button } from "@/shared/ui";
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router";
 
@@ -21,7 +22,6 @@ export const UsersPage = () => {
   useEffect(() => {
     getUsers()
       .then((res) => {
-        console.log(res);
         setUsers(res);
       })
       .catch((e) => {
@@ -39,7 +39,11 @@ export const UsersPage = () => {
     setSelectedUser(null);
   };
 
-  const handleCreateChat = async () => {
+  const handleRedirectToChats = () => {
+    navigate("/chats");
+  };
+
+  const handleCreateChat = async (chatName: string) => {
     console.log("Creating chat with user:", selectedUser);
     if (!selectedUser || !user) {
       return;
@@ -49,7 +53,7 @@ export const UsersPage = () => {
       return;
     }
     try {
-      await createChat({ users: [user.id, selectedUser.id], name: "New chat" });
+      await createChat({ users: [user.id, selectedUser.id], name: chatName });
       handleCloseModal();
       navigate("/chats");
     } catch (e) {
@@ -59,6 +63,17 @@ export const UsersPage = () => {
 
   return (
     <div className="min-h-screen bg-gray-950">
+      <header className="w-full  border-b border-gray-800 mb-8">
+        <div className="container mx-auto  flex items-center justify-between px-4 py-3">
+          <h2 className="text-lg font-semibold text-white">Users</h2>
+          <Button
+            onClick={handleRedirectToChats}
+            className="bg-blue-600 hover:bg-blue-700 text-white border border-blue-700 shadow-none px-4 py-2 text-sm font-medium"
+          >
+            Return to Chats
+          </Button>
+        </div>
+      </header>
       <UsersList onUserClick={handleUserClick} users={users} />
 
       {isModalOpen && selectedUser && (

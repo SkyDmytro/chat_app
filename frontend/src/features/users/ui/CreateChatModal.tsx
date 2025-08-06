@@ -3,11 +3,13 @@ import { Button } from "@/shared/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/shared/ui/card";
 import { Avatar } from "@/shared/ui/avatar";
 import type { User } from "../models/types";
+import { Input, Label } from "@/shared/ui";
+import { useState } from "react";
 
 interface CreateChatModalProps {
   user: User;
   onClose: () => void;
-  onCreateChat: () => void;
+  onCreateChat: (chatName: string) => void;
 }
 
 export function CreateChatModal({
@@ -15,6 +17,8 @@ export function CreateChatModal({
   onClose,
   onCreateChat,
 }: CreateChatModalProps) {
+  const [chatName, setChatName] = useState("");
+
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
       <Card className="bg-gray-900 border-gray-800 w-full max-w-md">
@@ -48,6 +52,19 @@ export function CreateChatModal({
             <UserIcon className="h-5 w-5 text-gray-500" />
           </div>
 
+          <div className="p-4 bg-gray-800 rounded-lg flex flex-col gap-2">
+            <Label className="text-white" htmlFor="chat-name">
+              Chat Name
+            </Label>
+            <Input
+              placeholder="Type a chat name..."
+              id="chat-name"
+              className="bg-gray-900 text-white border-gray-700"
+              value={chatName}
+              onChange={(e) => setChatName(e.target.value)}
+            />
+          </div>
+
           <div className="flex gap-3">
             <Button
               variant="outline"
@@ -57,7 +74,7 @@ export function CreateChatModal({
               Cancel
             </Button>
             <Button
-              onClick={onCreateChat}
+              onClick={() => onCreateChat(chatName)}
               className="flex-1 bg-blue-600 hover:bg-blue-700"
             >
               <MessageCircle className="h-4 w-4 mr-2" />
