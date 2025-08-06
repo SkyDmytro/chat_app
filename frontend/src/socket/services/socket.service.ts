@@ -44,7 +44,7 @@ class SocketService {
     this.socket = null;
   }
 
-  on<T>(event: string, callback: (data: T) => void) {
+  on<T>(event: "message", callback: (data: T) => void) {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     this.socket?.on(event, callback as any);
   }

@@ -12,12 +12,11 @@ interface UserCardProps {
 export function UserCard({ user, onClick }: UserCardProps) {
   return (
     <Card className="bg-gray-900 border-gray-800 hover:border-gray-700 transition-colors cursor-pointer group">
-      <CardContent className="p-6">
+      <CardContent className="p-6 pt-6">
         <div className="flex flex-col items-center text-center">
           <Avatar
-            src={`/placeholder.svg?height=80&width=80&query=${user.username}`}
             alt={user.username}
-            fallback={user.username.charAt(0).toUpperCase()}
+            fallback={user.username}
             className="h-16 w-16 mb-4"
           />
 

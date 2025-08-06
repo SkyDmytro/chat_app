@@ -2,12 +2,21 @@ import { Users } from "lucide-react";
 
 import type { User } from "../models/types";
 import { UserCard } from "./UserCard";
+import { useAuthContext } from "@/features/auth/context/AuthContext";
+import { useEffect, useState } from "react";
 interface UsersListProps {
   onUserClick: (user: User) => void;
   users: User[];
 }
 
 export function UsersList({ onUserClick, users }: UsersListProps) {
+  const { user } = useAuthContext();
+  const [filteredUsers, setFilteredUsers] = useState<User[]>([]);
+
+  useEffect(() => {
+    setFilteredUsers(users.filter((us) => user && us.id !== user.id));
+  }, [users, user]);
+
   return (
     <div className="container mx-auto px-4 py-8">
       <div className="mb-8">
@@ -19,8 +28,8 @@ export function UsersList({ onUserClick, users }: UsersListProps) {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-        {users.length > 0 ? (
-          users.map((user) => (
+        {filteredUsers.length > 0 ? (
+          filteredUsers.map((user) => (
             <UserCard
               key={user.id}
               user={user}

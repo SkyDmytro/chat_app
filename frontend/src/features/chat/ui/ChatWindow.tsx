@@ -7,6 +7,7 @@ import { MessageItem } from "./MessageItem";
 import type { Chat, Message } from "../model/types";
 import { useSocketService } from "@/socket/context/SocketContext";
 import { useAuthContext } from "@/features/auth/context/AuthContext";
+import "./chat-window.style.css";
 
 interface ChatWindowProps {
   chat: Chat;
@@ -43,7 +44,7 @@ export function ChatWindow({ chat }: ChatWindowProps) {
       scrollToBottom();
     };
 
-    socketService.on("newMessage", handleNewMessage);
+    socketService.on("newMessage" as "message", handleNewMessage);
     return () => {
       socketService.off("newMessage" as "message");
     };
@@ -66,15 +67,15 @@ export function ChatWindow({ chat }: ChatWindowProps) {
   if (!chat) return null;
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex flex-col h-screen">
       <div className="flex items-center justify-between p-4 border-b border-gray-800 bg-gray-900">
         <div className="flex items-center gap-3">
-          <Avatar />
+          <Avatar fallback={chat.name} />
           <h2 className="font-semibold text-white">{chat.name}</h2>
         </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-gray-950 pb-16">
+      <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-gray-950 pb-16 custom-scrollbar">
         {messages?.map((msg) => (
           <MessageItem
             key={msg.id}
