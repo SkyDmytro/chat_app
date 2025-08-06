@@ -9,6 +9,7 @@ export interface Chat {
 
 export interface Message {
   id: number;
+  type?: "text" | "image";
   chat_id: number;
   sender: {
     id: number;
@@ -17,4 +18,9 @@ export interface Message {
   content: string;
   created_at: Date;
   updated_at: Date;
+}
+
+export interface ImageResponse {
+  message: string;
+  filePath: string;
 }

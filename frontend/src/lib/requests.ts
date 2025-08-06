@@ -31,11 +31,20 @@ export const authFetch = {
     body: B,
     options: RequestInit = {}
   ): Promise<T> => {
+    const isFormData = body instanceof FormData;
+    const headers = isFormData
+      ? {
+          ...(options.headers || {}),
+          ...(session.getAuthToken()
+            ? { Authorization: `Bearer ${session.getAuthToken()}` }
+            : {}),
+        }
+      : createHeaders(options.headers);
     const res = await fetch(API_URL + url, {
       ...options,
       method: "POST",
-      headers: createHeaders(options.headers),
-      body: JSON.stringify(body),
+      headers,
+      body: isFormData ? body : JSON.stringify(body),
     });
 
     if (!res.ok) {

@@ -1,13 +1,17 @@
 import { useState, useRef, useEffect } from "react";
-import { Send } from "lucide-react";
+import { Paperclip, Send } from "lucide-react";
 import { Button } from "@/shared/ui/button";
 import { Input } from "@/shared/ui/input";
 import { Avatar } from "@/shared/ui/avatar";
 import { MessageItem } from "./MessageItem";
-import type { Chat, Message } from "../model/types";
+import type { Chat, ImageResponse, Message } from "../model/types";
 import { useSocketService } from "@/socket/context/SocketContext";
 import { useAuthContext } from "@/features/auth/context/AuthContext";
 import "./chat-window.style.css";
+import { ImageMessage } from "./ImageMessage";
+import { IMAGES_URL } from "@/lib/config";
+import { UploadPhotoModal } from "@/shared/uploadPhotoModal/UploadPhotoModal";
+import { useUploadImage } from "../hooks/useUploadImage";
 
 interface ChatWindowProps {
   chat: Chat;
@@ -15,8 +19,10 @@ interface ChatWindowProps {
 
 export function ChatWindow({ chat }: ChatWindowProps) {
   const { socketService } = useSocketService();
+  const { uploadImage } = useUploadImage();
   const [message, setMessage] = useState("");
   const [messages, setMessages] = useState(chat.messages);
+  const [isImageModalOpen, setIsImageModalOpen] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { user } = useAuthContext();
 
@@ -50,6 +56,24 @@ export function ChatWindow({ chat }: ChatWindowProps) {
     };
   }, [socketService]);
 
+  const handleSendPhotoMessage = (file: File) => {
+    uploadImage(file)
+      .then((response: ImageResponse) => {
+        socketService.emit(
+          "sendMessage" as "message",
+          JSON.stringify({
+            chatId: chat.id,
+            content: response.filePath,
+            type: "image",
+          })
+        );
+        handleCloseImageModal();
+      })
+      .catch((error) => {
+        console.error("Error uploading image:", error);
+      });
+  };
+
   const handleSendMessage = (e: React.FormEvent) => {
     e.preventDefault();
     if (!message.trim()) return;
@@ -64,6 +88,9 @@ export function ChatWindow({ chat }: ChatWindowProps) {
     setMessage("");
   };
 
+  const handleOpenImageModal = () => setIsImageModalOpen(true);
+  const handleCloseImageModal = () => setIsImageModalOpen(false);
+
   if (!chat) return null;
 
   return (
@@ -76,13 +103,23 @@ export function ChatWindow({ chat }: ChatWindowProps) {
       </div>
 
       <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-gray-950 pb-16 custom-scrollbar">
-        {messages?.map((msg) => (
-          <MessageItem
-            key={msg.id}
-            message={msg}
-            isOwn={msg.sender.id === user?.id}
-          />
-        ))}
+        {messages?.map((msg) => {
+          if (msg.type === "image") {
+            return (
+              <ImageMessage
+                isOwn={msg.sender.id === user?.id}
+                src={`${IMAGES_URL}/${msg.content}`}
+              />
+            );
+          }
+          return (
+            <MessageItem
+              key={msg.id}
+              message={msg}
+              isOwn={msg.sender.id === user?.id}
+            />
+          );
+        })}
         <div ref={messagesEndRef} />
       </div>
 
@@ -94,10 +131,23 @@ export function ChatWindow({ chat }: ChatWindowProps) {
             placeholder="Write message ..."
             className="flex-1 bg-gray-800 border-gray-700 text-white placeholder:text-gray-400 focus:border-blue-500"
           />
+          <Button
+            type="button"
+            onClick={handleOpenImageModal}
+            className="bg-gray-800 border-gray-700 text-white"
+          >
+            <Paperclip className="h-4 w-4" />
+          </Button>
           <Button type="submit" disabled={!message.trim()}>
             <Send className="h-4 w-4" />
           </Button>
         </form>
+        {isImageModalOpen && (
+          <UploadPhotoModal
+            onClose={handleCloseImageModal}
+            onUpload={handleSendPhotoMessage}
+          />
+        )}
       </div>
     </div>
   );
