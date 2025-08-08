@@ -14,10 +14,8 @@ import { Server, Socket } from 'socket.io';
 import { jwtConstants } from 'src/authentication/constants';
 import { UserWithoutPassword } from 'src/authentication/types/userWithoutPassword';
 import { ChatService } from 'src/chat/chat.service';
-import { MessageEntity } from 'src/messages/dto/message.entity';
-import { MessagesService } from 'src/messages/messages.service';
 import { UsersService } from 'src/users/users.service';
-import { SendMessageDto, SendMessageDtoSchema } from './dto/sendMessage.dto';
+import { WebSocketService } from './websocket.service';
 
 interface JwtPayload {
   email: string;
@@ -33,7 +31,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     private readonly jwtService: JwtService,
     private readonly usersService: UsersService,
     private readonly logger: Logger,
-    private readonly messagesService: MessagesService,
+    private readonly websocketService: WebSocketService,
     private readonly chatService: ChatService,
   ) {}
 
@@ -114,92 +112,27 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     @ConnectedSocket() client: Socket,
   ) {
     try {
-      const parsedData = this.parseAndValidateMessage(data, client);
-      const user = this.getUserFromClient(client);
+      const parsedData = this.websocketService.parseAndValidateMessage(
+        data,
+        client,
+      );
+      const user = this.websocketService.getUserFromClient(client);
 
-      const chatId = this.parseChatId(parsedData.chatId, client);
-      await this.assertUserInChat(chatId, user.id, client);
+      const chatId = this.websocketService.parseChatId(
+        parsedData.chatId,
+        client,
+      );
+      await this.websocketService.assertUserInChat(chatId, user.id, client);
 
-      await this.createAndEmitMessage(chatId, parsedData, user);
+      await this.websocketService.createAndEmitMessage(
+        chatId,
+        parsedData,
+        user,
+        this.server,
+      );
     } catch (error) {
       this.handleWsError(error, client);
     }
-  }
-
-  private parseAndValidateMessage(
-    data: string,
-    client: Socket,
-  ): SendMessageDto {
-    try {
-      const raw: unknown = typeof data === 'string' ? JSON.parse(data) : data;
-      return SendMessageDtoSchema.parse(raw);
-    } catch (e) {
-      this.logger.error('Invalid message data structure', e);
-      client.emit('error', { message: 'Invalid message data structure' });
-      throw new WsException('Invalid message data structure');
-    }
-  }
-
-  private getUserFromClient(client: Socket): UserWithoutPassword {
-    const user = client['user'] as UserWithoutPassword;
-    if (!user) {
-      this.logger.error('No user found in socket context');
-      throw new WsException('Unauthorized');
-    }
-    return user;
-  }
-
-  private parseChatId(chatIdRaw: string | number, client: Socket): number {
-    const chatId = Number(chatIdRaw);
-    if (!chatIdRaw || isNaN(chatId)) {
-      this.logger.error(`Invalid chatId: ${chatIdRaw}`);
-      client.emit('error', { message: 'Invalid chat ID' });
-      throw new WsException('Invalid chat ID');
-    }
-    return chatId;
-  }
-
-  private async assertUserInChat(
-    chatId: number,
-    userId: number,
-    client: Socket,
-  ) {
-    const isUserInChat = await this.chatService
-      .isUserInChat(chatId, userId)
-      .catch((err: Error) => {
-        this.logger.error(
-          `Failed to verify user in chat ${chatId}: ${err.message}`,
-        );
-        throw new WsException('Failed to verify chat membership');
-      });
-
-    if (!isUserInChat) {
-      this.logger.warn(`User ${userId} is not part of chat ${chatId}`);
-      client.emit('error', { message: 'User is not part of this chat' });
-      throw new WsException('User is not part of this chat');
-    }
-  }
-
-  private async createAndEmitMessage(
-    chatId: number,
-    parsedData: SendMessageDto,
-    user: UserWithoutPassword,
-  ) {
-    const messageEntity: MessageEntity = {
-      chatId,
-      content: parsedData.content,
-      senderId: user.id,
-      type: parsedData.type || 'text',
-    };
-
-    const message = await this.messagesService
-      .createMessage(messageEntity)
-      .catch((err: Error) => {
-        this.logger.error(`Failed to create message: ${err.message}`);
-        throw new WsException('Failed to send message');
-      });
-
-    this.server.to(`chat_${chatId}`).emit('newMessage', { content: message });
   }
 
   private handleWsError(error: unknown, client: Socket) {
