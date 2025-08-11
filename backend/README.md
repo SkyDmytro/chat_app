@@ -25,6 +25,78 @@
 
 [Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
 
+# Chat Backend (NestJS + PostgreSQL)
+
+This is a backend for a real-time chat application built with [NestJS](https://nestjs.com/) and [PostgreSQL](https://www.postgresql.org/). It supports authentication (JWT), file uploads, WebSocket messaging, and user/chat management.
+
+## Features
+- User registration and authentication (JWT)
+- Real-time chat with WebSocket (Socket.IO)
+- File uploads (images, etc.)
+- REST API for users, chats, and messages
+- PostgreSQL database (managed via Prisma ORM)
+- Dockerized for easy local development
+
+## Prerequisites
+- [Docker](https://www.docker.com/) and [Docker Compose](https://docs.docker.com/compose/)
+
+## Quick Start (Docker Compose)
+
+1. **Clone the repository:**
+   ```bash
+   git clone <your-repo-url>
+   cd backend
+   ```
+
+2. **Copy and edit environment variables:**
+   ```bash
+   cp .env.example .env
+   # Edit .env if needed 
+   ```
+
+3. **Start the backend and database:**
+   ```bash
+   docker-compose up --build
+   ```
+   This will start both the NestJS backend and a PostgreSQL database.
+
+4. **Apply database migrations:**
+   In a new terminal, run:
+   ```bash
+   docker-compose exec backend npx prisma migrate deploy
+   ```
+
+5. **Access the API:**
+   - REST API: [http://localhost:3000/api](http://localhost:3000/api)
+   - Swagger docs: [http://localhost:3000/api](http://localhost:3000/api)
+   - WebSocket: [ws://localhost:3001](ws://localhost:3001)
+   - Uploaded files: [http://localhost:3000/uploads/](http://localhost:3000/uploads/)
+
+## Useful Commands
+
+- **Run migrations:**
+  ```bash
+  docker-compose exec backend npx prisma migrate deploy
+  ```
+- **Open a database shell:**
+  ```bash
+  docker-compose exec db psql -U postgres -d chatdb
+  ```
+- **Stop services:**
+  ```bash
+  docker-compose down
+  ```
+
+## Project Structure
+- `src/` — main source code (modules, controllers, services, gateways)
+- `prisma/` — Prisma schema and migrations
+- `uploads/` — uploaded files
+- `.env` — environment variables
+
+
+## License
+MIT
+
 ## Project setup
 
 ```bash
@@ -44,55 +116,3 @@ $ npm run start:dev
 $ npm run start:prod
 ```
 
-## Run tests
-
-```bash
-# unit tests
-$ npm run test
-
-# e2e tests
-$ npm run test:e2e
-
-# test coverage
-$ npm run test:cov
-```
-
-## Deployment
-
-When you're ready to deploy your NestJS application to production, there are some key steps you can take to ensure it runs as efficiently as possible. Check out the [deployment documentation](https://docs.nestjs.com/deployment) for more information.
-
-If you are looking for a cloud-based platform to deploy your NestJS application, check out [Mau](https://mau.nestjs.com), our official platform for deploying NestJS applications on AWS. Mau makes deployment straightforward and fast, requiring just a few simple steps:
-
-```bash
-$ npm install -g @nestjs/mau
-$ mau deploy
-```
-
-With Mau, you can deploy your application in just a few clicks, allowing you to focus on building features rather than managing infrastructure.
-
-## Resources
-
-Check out a few resources that may come in handy when working with NestJS:
-
-- Visit the [NestJS Documentation](https://docs.nestjs.com) to learn more about the framework.
-- For questions and support, please visit our [Discord channel](https://discord.gg/G7Qnnhy).
-- To dive deeper and get more hands-on experience, check out our official video [courses](https://courses.nestjs.com/).
-- Deploy your application to AWS with the help of [NestJS Mau](https://mau.nestjs.com) in just a few clicks.
-- Visualize your application graph and interact with the NestJS application in real-time using [NestJS Devtools](https://devtools.nestjs.com).
-- Need help with your project (part-time to full-time)? Check out our official [enterprise support](https://enterprise.nestjs.com).
-- To stay in the loop and get updates, follow us on [X](https://x.com/nestframework) and [LinkedIn](https://linkedin.com/company/nestjs).
-- Looking for a job, or have a job to offer? Check out our official [Jobs board](https://jobs.nestjs.com).
-
-## Support
-
-Nest is an MIT-licensed open source project. It can grow thanks to the sponsors and support by the amazing backers. If you'd like to join them, please [read more here](https://docs.nestjs.com/support).
-
-## Stay in touch
-
-- Author - [Kamil Myśliwiec](https://twitter.com/kammysliwiec)
-- Website - [https://nestjs.com](https://nestjs.com/)
-- Twitter - [@nestframework](https://twitter.com/nestframework)
-
-## License
-
-Nest is [MIT licensed](https://github.com/nestjs/nest/blob/master/LICENSE).

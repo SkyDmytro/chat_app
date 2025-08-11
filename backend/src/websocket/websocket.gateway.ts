@@ -14,10 +14,8 @@ import { Server, Socket } from 'socket.io';
 import { jwtConstants } from 'src/authentication/constants';
 import { UserWithoutPassword } from 'src/authentication/types/userWithoutPassword';
 import { ChatService } from 'src/chat/chat.service';
-import { MessageEntity } from 'src/messages/dto/message.entity';
-import { MessagesService } from 'src/messages/messages.service';
 import { UsersService } from 'src/users/users.service';
-import { SendMessageDto, SendMessageDtoSchema } from './dto/sendMessage.dto';
+import { WebSocketService } from './websocket.service';
 
 interface JwtPayload {
   email: string;
@@ -33,7 +31,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     private readonly jwtService: JwtService,
     private readonly usersService: UsersService,
     private readonly logger: Logger,
-    private readonly messagesService: MessagesService,
+    private readonly websocketService: WebSocketService,
     private readonly chatService: ChatService,
   ) {}
 
@@ -113,87 +111,45 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     @MessageBody() data: string,
     @ConnectedSocket() client: Socket,
   ) {
-    let parsedData: SendMessageDto;
     try {
-      const raw: unknown = typeof data === 'string' ? JSON.parse(data) : data;
-      parsedData = SendMessageDtoSchema.parse(raw);
-    } catch (e) {
-      this.logger.error('Invalid message data structure', e);
-      client.emit('error', { message: 'Invalid message data structure' });
-      throw new WsException('Invalid message data structure');
-    }
-
-    try {
-      this.logger.log(
-        `Received message from client: ${JSON.stringify(parsedData)}`,
+      const parsedData = this.websocketService.parseAndValidateMessage(
+        data,
+        client,
       );
-      const user = client['user'] as UserWithoutPassword;
-      if (!user) {
-        this.logger.error('No user found in socket context');
-        throw new WsException('Unauthorized');
-      }
+      const user = this.websocketService.getUserFromClient(client);
 
-      if (!parsedData.chatId || !parsedData.content) {
-        this.logger.error(
-          `Invalid message data: ${JSON.stringify(parsedData)}`,
-        );
-        client.emit('error', { message: 'Invalid message data' });
-        throw new WsException('Invalid message data');
-      }
+      const chatId = this.websocketService.parseChatId(
+        parsedData.chatId,
+        client,
+      );
+      await this.websocketService.assertUserInChat(chatId, user.id, client);
 
-      const chatId = Number(parsedData.chatId);
-      if (isNaN(chatId)) {
-        this.logger.error(`Invalid chatId: ${parsedData.chatId}`);
-        client.emit('error', { message: 'Invalid chat ID' });
-        throw new WsException('Invalid chat ID');
-      }
-
-      const isUserInChat = await this.chatService
-        .isUserInChat(chatId, user.id)
-        .catch((err: Error) => {
-          this.logger.error(
-            `Failed to verify user in chat ${chatId}: ${err.message}`,
-          );
-          throw new WsException('Failed to verify chat membership');
-        });
-
-      if (!isUserInChat) {
-        this.logger.warn(`User ${user.id} is not part of chat ${chatId}`);
-        client.emit('error', { message: 'User is not part of this chat' });
-        throw new WsException('User is not part of this chat');
-      }
-
-      const messageEntity: MessageEntity = {
+      await this.websocketService.createAndEmitMessage(
         chatId,
-        content: parsedData.content,
-        senderId: user.id,
-        type: parsedData.type || 'text',
-      };
-
-      const message = await this.messagesService
-        .createMessage(messageEntity)
-        .catch((err: Error) => {
-          this.logger.error(`Failed to create message: ${err.message}`);
-          throw new WsException('Failed to send message');
-        });
-
-      this.server.to(`chat_${chatId}`).emit('newMessage', { content: message });
+        parsedData,
+        user,
+        this.server,
+      );
     } catch (error) {
-      let errorMessage: string;
-      if (
-        typeof error === 'object' &&
-        error !== null &&
-        'message' in error &&
-        typeof (error as { message?: unknown }).message === 'string'
-      ) {
-        errorMessage = (error as { message: string }).message;
-      } else {
-        errorMessage = 'Unknown error';
-      }
-      this.logger.error(`Message handling error: ${errorMessage}`);
-      client.emit('error', {
-        message: errorMessage || 'Failed to send message',
-      });
+      this.handleWsError(error, client);
     }
+  }
+
+  private handleWsError(error: unknown, client: Socket) {
+    let errorMessage: string;
+    if (
+      typeof error === 'object' &&
+      error !== null &&
+      'message' in error &&
+      typeof (error as { message?: unknown }).message === 'string'
+    ) {
+      errorMessage = (error as { message: string }).message;
+    } else {
+      errorMessage = 'Unknown error';
+    }
+    this.logger.error(`Message handling error: ${errorMessage}`);
+    client.emit('error', {
+      message: errorMessage || 'Failed to send message',
+    });
   }
 }

@@ -1,4 +1,5 @@
 import { HashingService } from './hashing.service';
+import { describe, beforeEach, it, expect } from '@jest/globals';
 
 describe('HashingService', () => {
   let hashingService: HashingService;
