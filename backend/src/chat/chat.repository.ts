@@ -1,4 +1,4 @@
-import { Chat } from '@prisma/client';
+import { Chat, Message, Prisma, User } from '@prisma/client';
 import { PrismaService } from 'src/database/prisma.service';
 import { IChatRepository } from './chat.repository.interface';
 import { ChatEntity } from './entities/chat.entity';
@@ -8,7 +8,42 @@ import { Injectable } from '@nestjs/common';
 export class ChatRepository implements IChatRepository {
   constructor(private readonly prisma: PrismaService) {}
 
-  async create(chat: ChatEntity): Promise<Chat> {
+  private messageCountSelector = (
+    userId: number,
+  ): Prisma.ChatCountOutputTypeSelect => ({
+    messages: {
+      where: {
+        read_at: null,
+        sender_id: {
+          not: userId,
+        },
+      },
+    },
+  });
+
+  private messageSelector = (userId: number): Prisma.ChatInclude => ({
+    users: {
+      select: {
+        id: true,
+        username: true,
+      },
+    },
+    messages: {
+      include: {
+        sender: {
+          select: {
+            id: true,
+            username: true,
+          },
+        },
+      },
+    },
+    _count: {
+      select: this.messageCountSelector(userId),
+    },
+  });
+
+  async create(chat: ChatEntity): Promise<Chat & { users: User[] }> {
     return this.prisma.chat.create({
       data: {
         name: chat.name,
@@ -20,42 +55,51 @@ export class ChatRepository implements IChatRepository {
     });
   }
 
-  async findByUserId(userId: number): Promise<Chat[]> {
-    return this.prisma.chat.findMany({
+  async findByUserId(
+    userId: number,
+  ): Promise<
+    (Chat & { users: Pick<User, 'id'>[] } & { unreadMessages: number })[]
+  > {
+    const chats = await this.prisma.chat.findMany({
       where: {
         users: {
           some: { id: userId },
         },
       },
-      include: {
-        users: {
-          select: {
-            id: true,
-          },
-        },
-        messages: {
-          include: {
-            sender: {
-              select: {
-                id: true,
-                username: true,
-              },
-            },
-          },
-        },
-      },
+      include: this.messageSelector(userId),
     });
+
+    return chats.map((chat) => ({
+      ...chat,
+      unreadMessages: (chat._count as { messages: number }).messages,
+    }));
   }
 
-  async findById(chatId: number): Promise<Chat | null> {
-    return this.prisma.chat.findUnique({
+  async findById(
+    chatId: number,
+    userId: number,
+  ): Promise<
+    | (Chat & {
+        users: User[];
+        messages: Message[];
+        unreadMessages: number;
+      })
+    | null
+  > {
+    const chat = await this.prisma.chat.findUnique({
       where: { id: chatId },
-      include: {
-        users: true,
-        messages: { include: { sender: true }, orderBy: { created_at: 'asc' } },
-      },
+      include: this.messageSelector(userId),
     });
+    if (!chat) {
+      return null;
+    }
+    const { _count, ...rest } = chat;
+    return {
+      ...rest,
+      unreadMessages: (_count as { messages: number }).messages,
+    };
   }
+
   async isUserInChat(chatId: number, userId: number): Promise<boolean> {
     const chat = await this.prisma.chat.findUnique({
       where: { id: chatId },

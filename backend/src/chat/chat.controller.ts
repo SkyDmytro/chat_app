@@ -46,14 +46,23 @@ export class ChatController {
     @Param('chatId') id: number,
     @Req() req: Request,
   ): Promise<Message[]> {
-    const user = req.user!;
+    const user = req.user;
     return this.chatService.getMessagesByChatId(id, user);
   }
 
   @Get(':id')
   findById(@Param('id') id: number, @Req() req: Request): Promise<Chat | null> {
-    const user = req.user!;
+    const user = req.user;
 
-    return this.chatService.findById(id, user);
+    return this.chatService.findById(id, user.id);
+  }
+  @Post(':id/mark-all-as-read')
+  markAllMessagesAsRead(
+    @Param('id') chatId: number,
+    @Req() req: Request,
+  ): Promise<void> {
+    const user = req.user;
+
+    return this.chatService.readAllMessages(chatId, user.id);
   }
 }

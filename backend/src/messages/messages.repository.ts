@@ -40,4 +40,15 @@ export class MessagesRepository implements IMessagesRepository {
       orderBy: { created_at: 'asc' },
     });
   }
+
+  async markAllMessagesAsRead(chatId: number, userId: number): Promise<void> {
+    await this.prisma.message.updateMany({
+      where: {
+        chat_id: chatId,
+        read_at: null,
+        sender_id: { not: userId },
+      },
+      data: { read_at: new Date() },
+    });
+  }
 }

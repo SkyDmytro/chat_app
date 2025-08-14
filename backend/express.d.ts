@@ -3,6 +3,6 @@ import { UserWithoutPassword } from 'src/authentication/types/userWithoutPasswor
 
 declare module 'express' {
   interface Request {
-    user?: UserWithoutPassword;
+    user: UserWithoutPassword;
   }
 }

@@ -11,16 +11,9 @@ import {
 } from '@nestjs/websockets';
 import { Logger } from 'nestjs-pino';
 import { Server, Socket } from 'socket.io';
-import { jwtConstants } from 'src/authentication/constants';
-import { UserWithoutPassword } from 'src/authentication/types/userWithoutPassword';
 import { ChatService } from 'src/chat/chat.service';
 import { UsersService } from 'src/users/users.service';
 import { WebSocketService } from './websocket.service';
-
-interface JwtPayload {
-  email: string;
-  sub: number;
-}
 
 @WebSocketGateway(3001, { cors: { origin: '*' } })
 export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
@@ -37,73 +30,56 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
   async handleConnection(client: Socket) {
     try {
-      const token = client.handshake.auth.token as string;
-
-      if (!token) {
-        this.logger.error('No token provided for WebSocket connection');
-        client.emit('error', { message: 'No token provided' });
-        throw new WsException('No token provided');
-      }
-
-      const payload: JwtPayload = await this.jwtService
-        .verifyAsync<JwtPayload>(token, {
-          secret: jwtConstants.secret,
-        })
-        .catch((err: Error) => {
-          this.logger.error(`Invalid token: ${err.message}`);
-          client.emit('error', { message: 'Invalid token' });
-          throw new WsException('Invalid token');
-        });
-
-      const user = await this.usersService.findByEmail(payload.email);
-      if (!user) {
-        this.logger.error(`User not found for email: ${payload.email}`);
-        client.emit('error', { message: 'User not found' });
-        throw new WsException('User not found');
-      }
-
-      client['user'] = user;
-      this.logger.log(`User ${user.email} connected to WebSocket`);
-
-      const usersChats = await this.chatService
-        .findByUserId(user.id)
-        .catch((err: Error) => {
-          this.logger.error(
-            `Failed to fetch chats for user ${user.id}: ${err.message}`,
-          );
-          throw new WsException('Failed to fetch user chats');
-        });
-
-      for (const chat of usersChats) {
-        await client.join(`chat_${chat.id}`);
-        this.logger.log(`User ${user.email} joined chat_${chat.id}`);
-      }
+      await this.websocketService.handleConnection(client);
     } catch (error) {
-      let errorMessage: string;
-      if (
-        typeof error === 'object' &&
-        error !== null &&
-        'message' in error &&
-        typeof (error as { message?: unknown }).message === 'string'
-      ) {
-        errorMessage = (error as { message: string }).message;
-      } else {
-        errorMessage = 'Unknown error';
-      }
-      this.logger.error(`Message handling error: ${errorMessage}`);
-      client.emit('error', {
-        message: errorMessage || 'Failed to send message',
-      });
+      this.handleWsError(error, client);
       client.disconnect();
     }
   }
 
-  async handleDisconnect(client: Socket) {
-    const user = client['user'] as UserWithoutPassword | undefined;
-    if (user) {
-      this.logger.log(`User ${user.email} disconnected from WebSocket`);
+  handleDisconnect(client: Socket) {
+    this.websocketService.handleDisconnect(client);
+  }
+
+  @SubscribeMessage('joinChat')
+  async joinChat(
+    @MessageBody() body: string,
+    @ConnectedSocket() client: Socket,
+  ) {
+    const { chatId } = JSON.parse(body) as { chatId: number };
+    try {
+      const user = this.websocketService.getUserFromClient(client);
+
+      await this.websocketService.assertUserInChat(chatId, user.id, client);
+
+      await client.join(`chat_${chatId}`);
+      this.logger.log(`User ${user.email} joined chat_${chatId}`);
+      client.emit('joinedChat', { chatId });
+    } catch (error) {
+      this.handleWsError(error, client);
     }
-    await client.leave('user');
+  }
+
+  @SubscribeMessage('notifyUser')
+  notifyUser(
+    @MessageBody() data: { userId: number; message: string },
+    @ConnectedSocket() client: Socket,
+  ) {
+    try {
+      const { userId, message } = data;
+
+      // Получаем сокет пользователя
+      const targetSocket = this.server.sockets.sockets.get(`user_${userId}`);
+      if (!targetSocket) {
+        throw new WsException('User is not connected');
+      }
+
+      // Отправляем сообщение конкретному пользователю
+      targetSocket.emit('notification', { message });
+      this.logger.log(`Notification sent to user ${userId}`);
+    } catch (error) {
+      this.handleWsError(error, client);
+    }
   }
 
   @SubscribeMessage('sendMessage')
@@ -116,6 +92,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
         data,
         client,
       );
+      console.log(parsedData);
       const user = this.websocketService.getUserFromClient(client);
 
       const chatId = this.websocketService.parseChatId(
@@ -128,6 +105,20 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
         chatId,
         parsedData,
         user,
+        this.server,
+      );
+      const chat = await this.chatService.findById(chatId, user.id);
+      const userToNotify = chat?.users.find((u) => u.id !== user.id);
+
+      if (!userToNotify) {
+        this.logger.warn(
+          `Failed to notify user ${userToNotify}: no other users in chat`,
+        );
+        return;
+      }
+      this.websocketService.notifyUserDirectly(
+        userToNotify.id,
+        parsedData,
         this.server,
       );
     } catch (error) {
