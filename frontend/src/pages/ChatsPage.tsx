@@ -1,51 +1,13 @@
 import { useChats } from "@/features/chat/contexts/ChatsContext";
-import type { Chat } from "@/features/chat/model/types";
+import { useChatsPage } from "@/features/chat/hooks/useChatsPage";
 import { ChatSidebar } from "@/features/chat/ui/ChatSidebar";
 import { ChatWindow } from "@/features/chat/ui/ChatWindow";
 import { useToast } from "@/shared/hooks/useToast";
-import { useSocketService } from "@/socket/context/SocketContext";
-import { useEffect, useState } from "react";
 
 export function ChatsPage() {
-  const { socketService } = useSocketService();
-  const { chats, refetchSingleChat } = useChats();
-  const [selectedChat, setSelectedChat] = useState<Chat | null>(null);
-  const { showToast, ToastContainer } = useToast();
-  console.log(chats);
-
-  useEffect(() => {
-    socketService.connect();
-
-    socketService.on(
-      "notification" as "message",
-      (data: { type: string; content: string; chatId: number }) => {
-        console.log("Notification received:", data);
-        showToast({
-          title: "Notification",
-          message: data.type === "text" ? data.content : "File",
-          variant: "default",
-        });
-        refetchSingleChat(data.chatId);
-        console.log("notif", data);
-      }
-    );
-  }, [socketService]);
-
-  useEffect(() => {
-    const updatedSelectedChat = chats.find((c) => c.id === selectedChat?.id);
-    if (updatedSelectedChat) {
-      setSelectedChat({ ...updatedSelectedChat });
-    } else {
-      setSelectedChat(null);
-    }
-  }, [chats]);
-
-  const onSelectChat = (chatId: number) => {
-    const chat = chats.find((ch) => ch.id === chatId);
-    if (chat) {
-      setSelectedChat({ ...chat });
-    }
-  };
+  const { chats, selectChat, selectedChat } = useChats();
+  useChatsPage();
+  const { ToastContainer } = useToast();
 
   return (
     <>
@@ -55,7 +17,7 @@ export function ChatsPage() {
           <ChatSidebar
             chats={chats}
             selectedChat={selectedChat}
-            onChatSelect={onSelectChat}
+            onChatSelect={selectChat}
           />
         </div>
 

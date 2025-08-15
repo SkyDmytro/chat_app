@@ -7,12 +7,20 @@ interface ChatsContextProps {
   chats: Chat[];
   refetchChats: () => Promise<void>;
   refetchSingleChat: (chatId: number) => Promise<void>;
+  selectChat: (chatId: number | null) => void;
+  selectedChat: Chat | null;
 }
 
 const ChatsContext = createContext<ChatsContextProps | undefined>(undefined);
 
 export const ChatsProvider = ({ children }: { children: ReactNode }) => {
   const [chats, setChats] = useState<Chat[]>([]);
+  const [selectedChat, setSelectedChat] = useState<Chat | null>(null);
+
+  const selectChat = (chatId: number | null) => {
+    const chat = chats.find((c) => c.id === chatId);
+    if (chat) setSelectedChat(chat);
+  };
 
   const fetchSingleChat = async (chatId: number) => {
     try {
@@ -50,6 +58,8 @@ export const ChatsProvider = ({ children }: { children: ReactNode }) => {
         chats,
         refetchSingleChat: fetchSingleChat,
         refetchChats: fetchChats,
+        selectChat: selectChat,
+        selectedChat,
       }}
     >
       {children}
