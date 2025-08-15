@@ -56,6 +56,7 @@ export class ChatController {
 
     return this.chatService.findById(id, user.id);
   }
+
   @Post(':id/mark-all-as-read')
   markAllMessagesAsRead(
     @Param('id') chatId: number,

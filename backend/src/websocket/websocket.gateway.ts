@@ -59,6 +59,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
       this.handleWsError(error, client);
     }
   }
+
   @SubscribeMessage('leaveChat')
   async leaveChat(
     @MessageBody() body: string,
@@ -86,13 +87,11 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     try {
       const { userId, message } = data;
 
-      // Получаем сокет пользователя
       const targetSocket = this.server.sockets.sockets.get(`user_${userId}`);
       if (!targetSocket) {
         throw new WsException('User is not connected');
       }
 
-      // Отправляем сообщение конкретному пользователю
       targetSocket.emit('notification', { message });
       this.logger.log(`Notification sent to user ${userId}`);
     } catch (error) {

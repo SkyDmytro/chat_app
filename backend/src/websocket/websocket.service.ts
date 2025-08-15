@@ -134,7 +134,7 @@ export class WebSocketService implements IWebsocketService {
         client.emit('error', { message: 'No token provided' });
         throw new WsException('No token provided');
       }
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+
       const payload: JwtPayload = await this.jwtService
         .verifyAsync<JwtPayload>(token, {
           secret: jwtConstants.secret,
@@ -154,7 +154,6 @@ export class WebSocketService implements IWebsocketService {
 
       client['user'] = user;
 
-      // Map userId to socketId
       this.userSocketMap.set(user.id, client.id);
       await client.join(`user_${user.id}`);
       this.logger.log(`User ${user.email} connected to WebSocket`, client.id);
@@ -167,7 +166,6 @@ export class WebSocketService implements IWebsocketService {
   handleDisconnect(client: Socket) {
     const user = client['user'] as UserWithoutPassword | undefined;
     if (user) {
-      // Remove userId -> socketId mapping
       this.userSocketMap.delete(user.id);
       this.logger.log(`User ${user.email} disconnected`);
     }

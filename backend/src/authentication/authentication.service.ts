@@ -36,12 +36,14 @@ export class AuthenticationService {
     }
     return null;
   }
+
   login(user: UserWithoutPassword) {
     const payload = { email: user.email, sub: user.id };
     return {
       access_token: this.jwtService.sign(payload),
     };
   }
+
   async register(registerUserDto: RegisterUserDto) {
     try {
       const { email, password, username } = registerUserDto;

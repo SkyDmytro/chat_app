@@ -11,6 +11,7 @@ export class MessagesService implements IMessagesService {
     private readonly messagesRepository: MessagesRepository,
     private readonly logger: Logger,
   ) {}
+
   createMessage(message: MessageEntity): Promise<Message> {
     return this.messagesRepository.create(message);
   }

@@ -7,6 +7,7 @@ import { IMessagesRepository } from './messages.repository.interface';
 @Injectable()
 export class MessagesRepository implements IMessagesRepository {
   constructor(private readonly prisma: PrismaService) {}
+
   async create(message: MessageEntity): Promise<Message> {
     const messages = this.prisma.message.create({
       data: {
