@@ -59,6 +59,24 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
       this.handleWsError(error, client);
     }
   }
+  @SubscribeMessage('leaveChat')
+  async leaveChat(
+    @MessageBody() body: string,
+    @ConnectedSocket() client: Socket,
+  ) {
+    const { chatId } = JSON.parse(body) as { chatId: number };
+    try {
+      const user = this.websocketService.getUserFromClient(client);
+
+      await this.websocketService.assertUserInChat(chatId, user.id, client);
+
+      await client.leave(`chat_${chatId}`);
+      this.logger.log(`User ${user.email} left chat_${chatId}`);
+      client.emit('leftChat', { chatId });
+    } catch (error) {
+      this.handleWsError(error, client);
+    }
+  }
 
   @SubscribeMessage('notifyUser')
   notifyUser(

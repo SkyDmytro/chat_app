@@ -67,6 +67,7 @@ export class ChatRepository implements IChatRepository {
         },
       },
       include: this.messageSelector(userId),
+      orderBy: { updated_at: 'desc' },
     });
 
     return chats.map((chat) => ({
