@@ -9,6 +9,7 @@ import { UserResponseDto } from 'src/users/dto/user-response.dto';
 @Controller('auth')
 export class AuthenticationController {
   constructor(private authService: AuthenticationService) {}
+
   @UseGuards(LocalAuthGuard)
   @ApiOkResponse({
     description: 'User successfully logged in',
@@ -18,9 +19,10 @@ export class AuthenticationController {
   })
   @Post('login')
   login(@Req() req: Request) {
-    const user = req.user!;
+    const user = req.user;
     return this.authService.login(user);
   }
+
   @ApiOkResponse({
     description: 'User successfully logged in',
     type: UserResponseDto,

@@ -38,15 +38,16 @@ model Chat {
 }
 
 model Message {
-  id         Int      @id @default(autoincrement())
-  type       String?  @default("text")
+  id         Int       @id @default(autoincrement())
+  type       String?   @default("text")
   chat_id    Int
   sender_id  Int
   content    String
-  created_at DateTime @default(now())
-  updated_at DateTime @updatedAt
-  chat       Chat     @relation(fields: [chat_id], references: [id])
-  sender     User     @relation(fields: [sender_id], references: [id])
+  created_at DateTime  @default(now())
+  updated_at DateTime  @updatedAt
+  chat       Chat      @relation(fields: [chat_id], references: [id])
+  sender     User      @relation(fields: [sender_id], references: [id])
+  read_at    DateTime?
 
   @@map("messages")
 }

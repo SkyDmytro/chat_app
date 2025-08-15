@@ -70,12 +70,19 @@ export function ChatSidebar({
       <div className="flex-1 overflow-y-auto">
         {filteredChats.length > 0 ? (
           filteredChats.map((chat) => (
-            <ChatItem
-              key={chat.id}
-              chat={chat}
-              isSelected={selectedChat?.id === chat.id}
-              onClick={() => onChatSelect(chat.id)}
-            />
+            <div className="relative" key={chat.id}>
+              <ChatItem
+                key={chat.id}
+                chat={chat}
+                isSelected={selectedChat?.id === chat.id}
+                onClick={() => onChatSelect(chat.id)}
+              />
+              {chat.unreadMessages > 0 && (
+                <span className="absolute top-1/2 right-2 bg-blue-500 text-white text-xs rounded-full px-2">
+                  {chat.unreadMessages}
+                </span>
+              )}
+            </div>
           ))
         ) : (
           <div className="p-4 text-center text-gray-400">Chats not found</div>

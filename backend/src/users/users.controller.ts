@@ -40,6 +40,7 @@ export class UsersController {
 
     return user;
   }
+
   @Get('')
   @ApiOkResponse({
     description: 'Get the authenticated user',

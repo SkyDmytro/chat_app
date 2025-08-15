@@ -5,7 +5,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { IChatService } from './chat.service.interface';
-import { Chat, Message } from '@prisma/client';
+import { Chat, Message, User } from '@prisma/client';
 import { CreateChatDto } from './dto/createChat.dto';
 import {
   ChatsRepositorySymbol,
@@ -59,19 +59,16 @@ export class ChatService implements IChatService {
 
   async findById(
     chatId: number,
-    user: UserWithoutPassword,
-  ): Promise<Chat | null> {
-    const isUserInChat = await this.chatRepository.isUserInChat(
-      chatId,
-      user.id,
-    );
+    userId: number,
+  ): Promise<(Chat & { users: User[]; messages: Message[] }) | null> {
+    const isUserInChat = await this.chatRepository.isUserInChat(chatId, userId);
 
     if (!isUserInChat) {
       throw new BadRequestException('User is not part of this chat');
     }
 
     try {
-      return this.chatRepository.findById(chatId);
+      return this.chatRepository.findById(chatId, userId);
     } catch (error) {
       this.logger.error(error, {
         chatId,
@@ -95,7 +92,7 @@ export class ChatService implements IChatService {
     chatId: number,
     user: UserWithoutPassword,
   ): Promise<Message[]> {
-    const chat = await this.chatRepository.findById(chatId);
+    const chat = await this.chatRepository.findById(chatId, user.id);
 
     if (!chat) {
       throw new BadRequestException('Chat not found');
@@ -121,5 +118,27 @@ export class ChatService implements IChatService {
 
   async isUserInChat(chatId: number, userId: number): Promise<boolean> {
     return this.chatRepository.isUserInChat(chatId, userId);
+  }
+
+  async readAllMessages(chatId: number, userId: number): Promise<void> {
+    const chat = await this.chatRepository.findById(chatId, userId);
+    if (!chat) {
+      throw new NotFoundException('Chat not found');
+    }
+
+    const isUserInChat = await this.chatRepository.isUserInChat(chatId, userId);
+    if (!isUserInChat) {
+      throw new BadRequestException('User is not part of this chat');
+    }
+
+    try {
+      await this.messagesService.markAllMessagesAsRead(chatId, userId);
+    } catch (error) {
+      this.logger.error(error, {
+        chatId,
+        userId,
+      });
+      throw new BadRequestException('Failed to mark messages as read');
+    }
   }
 }

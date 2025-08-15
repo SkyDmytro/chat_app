@@ -8,13 +8,24 @@ import { MessagesService } from 'src/messages/messages.service';
 import { Server, Socket } from 'socket.io';
 import { IWebsocketService } from './websocket.gateway.interface';
 import { Injectable } from '@nestjs/common';
+import { jwtConstants } from 'src/authentication/constants';
+import { UsersService } from 'src/users/users.service';
+import { JwtService } from '@nestjs/jwt';
 
+interface JwtPayload {
+  email: string;
+  sub: number;
+}
 @Injectable()
 export class WebSocketService implements IWebsocketService {
+  private userSocketMap = new Map<number, string>();
+
   constructor(
     private readonly logger: Logger,
     private readonly messagesService: MessagesService,
     private readonly chatService: ChatService,
+    private readonly jwtService: JwtService,
+    private readonly usersService: UsersService,
   ) {}
 
   parseAndValidateMessage(data: string, client: Socket): SendMessageDto {
@@ -56,7 +67,6 @@ export class WebSocketService implements IWebsocketService {
         );
         throw new WsException('Failed to verify chat membership');
       });
-    console.log(isUserInChat);
 
     if (!isUserInChat) {
       this.logger.warn(`User ${userId} is not part of chat ${chatId}`);
@@ -86,5 +96,126 @@ export class WebSocketService implements IWebsocketService {
       });
 
     server.to(`chat_${chatId}`).emit('newMessage', { content: message });
+  }
+
+  async notifyUser(
+    chatId: number,
+    senderId: number,
+    message: string,
+    server: Server,
+  ) {
+    const chat = await this.chatService.findById(chatId, senderId);
+    const users = chat?.users || [];
+    const userToNotify = users.find((u) => u.id !== senderId);
+
+    if (!userToNotify) {
+      this.logger.warn(
+        `Failed to notify user ${userToNotify}: no other users in chat`,
+      );
+      return;
+    }
+
+    const targetSocket = server.sockets.sockets.get(`user_${userToNotify.id}`);
+
+    if (!targetSocket) {
+      this.logger.warn(`User ${userToNotify.id} is not connected`);
+      return;
+    }
+
+    targetSocket.emit('notification', { chatId, message });
+    this.logger.log(`Notification sent to user ${userToNotify.id}`);
+  }
+
+  async handleConnection(client: Socket) {
+    try {
+      const token = client.handshake.auth.token as string;
+      if (!token) {
+        this.logger.error('No token provided for WebSocket connection');
+        client.emit('error', { message: 'No token provided' });
+        throw new WsException('No token provided');
+      }
+
+      const payload: JwtPayload = await this.jwtService
+        .verifyAsync<JwtPayload>(token, {
+          secret: jwtConstants.secret,
+        })
+        .catch((err: Error) => {
+          this.logger.error(`Invalid token: ${err.message}`);
+          client.emit('error', { message: 'Invalid token' });
+          throw new WsException('Invalid token');
+        });
+
+      const user = await this.usersService.findByEmail(payload.email);
+      if (!user) {
+        this.logger.error(`User not found for email: ${payload.email}`);
+        client.emit('error', { message: 'User not found' });
+        throw new WsException('User not found');
+      }
+
+      client['user'] = user;
+
+      this.userSocketMap.set(user.id, client.id);
+      await client.join(`user_${user.id}`);
+      this.logger.log(`User ${user.email} connected to WebSocket`, client.id);
+    } catch (error) {
+      this.handleWsError(error, client);
+      client.disconnect();
+    }
+  }
+
+  handleDisconnect(client: Socket) {
+    const user = client['user'] as UserWithoutPassword | undefined;
+    if (user) {
+      this.userSocketMap.delete(user.id);
+      this.logger.log(`User ${user.email} disconnected`);
+    }
+  }
+
+  notifyUserDirectly(
+    userId: number,
+    message: {
+      chatId: number;
+      content: string;
+      type: 'text' | 'image';
+    },
+    server: Server,
+  ) {
+    const socketId = this.userSocketMap.get(userId);
+    this.logger.log(
+      `Notifying user ${userId} with message:  ${message.content} and socket ID: ${socketId}`,
+    );
+
+    if (!socketId) {
+      this.logger.warn(`User ${userId} is not connected`);
+      return;
+    }
+
+    const targetSocket = server.sockets.sockets.get(socketId);
+
+    if (!targetSocket) {
+      this.logger.warn(`Socket for user ${userId} not found`);
+      return;
+    }
+
+    targetSocket.emit('notification', message);
+    this.logger.log(`Notification sent to user ${userId}`);
+  }
+
+  private handleWsError(error: unknown, client: Socket) {
+    let errorMessage: string;
+    if (
+      typeof error === 'object' &&
+      error !== null &&
+      'message' in error &&
+      typeof (error as { message?: unknown }).message === 'string'
+    ) {
+      errorMessage = (error as { message: string }).message;
+    } else {
+      errorMessage = 'Unknown error';
+    }
+    this.logger.error(`Message handling error: ${errorMessage}`);
+    client.emit('error', {
+      message: errorMessage || 'Failed to send message',
+    });
   }
 }

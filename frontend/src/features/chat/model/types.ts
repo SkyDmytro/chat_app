@@ -5,6 +5,10 @@ export interface Chat {
   updated_at: Date;
   users: { id: number }[];
   messages?: Message[];
+  unreadMessages: number;
+  _count: {
+    messages: number;
+  };
 }
 
 export interface Message {

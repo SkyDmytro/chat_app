@@ -1,56 +1,40 @@
-import type { Chat } from "@/features/chat/model/types";
+import { useChats } from "@/features/chat/contexts/ChatsContext";
+import { useChatsPage } from "@/features/chat/hooks/useChatsPage";
 import { ChatSidebar } from "@/features/chat/ui/ChatSidebar";
 import { ChatWindow } from "@/features/chat/ui/ChatWindow";
-import { authFetch } from "@/lib/requests";
-import { useSocketService } from "@/socket/context/SocketContext";
-import { useEffect, useState } from "react";
+import { useToast } from "@/shared/hooks/useToast";
 
 export function ChatsPage() {
-  const { socketService } = useSocketService();
-  const [selectedChat, setSelectedChat] = useState<Chat | null>(null);
-  const [chats, setChats] = useState<Chat[]>([]);
-
-  const getChats = async () => {
-    return authFetch.get("/chats/users");
-  };
-
-  useEffect(() => {
-    socketService.connect();
-
-    getChats().then((data) => {
-      const chats = data as Chat[];
-      setChats(chats);
-    });
-  }, [socketService]);
-
-  const onSelectChat = (chatId: number) => {
-    const chat = chats.find((ch) => ch.id === chatId);
-    if (chat) {
-      setSelectedChat(chat);
-    }
-  };
+  const { chats, selectChat, selectedChat } = useChats();
+  useChatsPage();
+  const { ToastContainer } = useToast();
 
   return (
-    <div className="min-h-screen bg-gray-950 flex">
-      <div className="w-80 border-r border-gray-800 flex-shrink-0">
-        <ChatSidebar
-          chats={chats}
-          selectedChat={selectedChat}
-          onChatSelect={onSelectChat}
-        />
-      </div>
+    <>
+      <ToastContainer />
+      <div className="min-h-screen bg-gray-950 flex">
+        <div className="w-80 border-r border-gray-800 flex-shrink-0">
+          <ChatSidebar
+            chats={chats}
+            selectedChat={selectedChat}
+            onChatSelect={selectChat}
+          />
+        </div>
 
-      <div className="flex-1 flex flex-col">
-        {selectedChat ? <ChatWindow chat={selectedChat} /> : <EmptyChat />}
+        <div className="flex-1 flex flex-col">
+          {selectedChat ? <ChatWindow chat={selectedChat} /> : <EmptyChat />}
+        </div>
       </div>
-    </div>
+    </>
   );
 }
 
 function EmptyChat() {
+  const { ToastContainer } = useToast();
   return (
     <div className="flex-1 flex items-center justify-center text-gray-400">
       Select a chat to start messaging
+      <ToastContainer />
     </div>
   );
 }

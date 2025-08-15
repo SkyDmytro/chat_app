@@ -11,6 +11,7 @@ export class MessagesService implements IMessagesService {
     private readonly messagesRepository: MessagesRepository,
     private readonly logger: Logger,
   ) {}
+
   createMessage(message: MessageEntity): Promise<Message> {
     return this.messagesRepository.create(message);
   }
@@ -29,6 +30,17 @@ export class MessagesService implements IMessagesService {
       this.logger.error(error);
       throw new NotFoundException(
         `Error retrieving messages for chat ${chatId}`,
+      );
+    }
+  }
+
+  async markAllMessagesAsRead(chatId: number, userId: number): Promise<void> {
+    try {
+      await this.messagesRepository.markAllMessagesAsRead(chatId, userId);
+    } catch (error) {
+      this.logger.error(error);
+      throw new NotFoundException(
+        `Error marking messages as read for chat ${chatId} and user ${userId}`,
       );
     }
   }

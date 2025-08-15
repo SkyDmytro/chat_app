@@ -16,6 +16,7 @@ export class UsersService implements IUsersService {
   async findById(userId: number): Promise<User | null> {
     return this.usersRepository.findById(userId);
   }
+
   async findByEmail(
     email: string,
     includePassword: boolean = false,

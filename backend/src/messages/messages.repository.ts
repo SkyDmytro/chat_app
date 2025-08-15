@@ -7,8 +7,9 @@ import { IMessagesRepository } from './messages.repository.interface';
 @Injectable()
 export class MessagesRepository implements IMessagesRepository {
   constructor(private readonly prisma: PrismaService) {}
-  create(message: MessageEntity): Promise<Message> {
-    return this.prisma.message.create({
+
+  async create(message: MessageEntity): Promise<Message> {
+    const messages = this.prisma.message.create({
       data: {
         content: message.content,
         sender_id: message.senderId,
@@ -24,6 +25,11 @@ export class MessagesRepository implements IMessagesRepository {
         },
       },
     });
+    await this.prisma.chat.update({
+      where: { id: message.chatId },
+      data: { updated_at: new Date() },
+    });
+    return messages;
   }
 
   findByChatId(chatId: number): Promise<Message[]> {
@@ -38,6 +44,17 @@ export class MessagesRepository implements IMessagesRepository {
         },
       },
       orderBy: { created_at: 'asc' },
+    });
+  }
+
+  async markAllMessagesAsRead(chatId: number, userId: number): Promise<void> {
+    await this.prisma.message.updateMany({
+      where: {
+        chat_id: chatId,
+        read_at: null,
+        sender_id: { not: userId },
+      },
+      data: { read_at: new Date() },
     });
   }
 }
