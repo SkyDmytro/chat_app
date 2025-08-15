@@ -12,15 +12,19 @@ import { ImageMessage } from "./ImageMessage";
 import { IMAGES_URL } from "@/lib/config";
 import { UploadPhotoModal } from "@/shared/uploadPhotoModal/UploadPhotoModal";
 import { useUploadImage } from "../hooks/useUploadImage";
+import { useChats } from "../contexts/ChatsContext";
+import { authFetch } from "@/lib/requests";
 
 interface ChatWindowProps {
   chat: Chat;
 }
 
 export function ChatWindow({ chat }: ChatWindowProps) {
+  console.log(chat);
   const { socketService } = useSocketService();
   const { uploadImage } = useUploadImage();
   const [message, setMessage] = useState("");
+  const { refetchSingleChat, refetchChats } = useChats();
   const [messages, setMessages] = useState(chat.messages);
   const [isImageModalOpen, setIsImageModalOpen] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -31,8 +35,26 @@ export function ChatWindow({ chat }: ChatWindowProps) {
   };
 
   useEffect(() => {
+    console.log("     ChatWindow mounted with chat:", chat);
     setMessages(chat.messages);
-  }, [chat]);
+  }, [chat.messages]);
+
+  useEffect(() => {
+    socketService.emit(
+      "joinChat" as "message",
+      JSON.stringify({ chatId: chat.id })
+    );
+    authFetch.post(`/chats/${chat.id}/mark-all-as-read`, {});
+    refetchSingleChat(chat.id);
+
+    return () => {
+      socketService.emit(
+        "leaveChat" as "message",
+        JSON.stringify({ chatId: chat.id })
+      );
+      refetchChats();
+    };
+  }, [chat.id]);
 
   useEffect(() => {
     scrollToBottom();
@@ -40,6 +62,7 @@ export function ChatWindow({ chat }: ChatWindowProps) {
 
   useEffect(() => {
     const handleNewMessage = (data: { content: Message }) => {
+      if (data.content.chat_id !== chat.id) return;
       console.log(data);
       setMessages((prev = []) => {
         if (!prev.some((msg) => msg.id === data.content.id)) {
@@ -48,6 +71,7 @@ export function ChatWindow({ chat }: ChatWindowProps) {
         return prev;
       });
       scrollToBottom();
+      refetchSingleChat(data.content.chat_id as number);
     };
 
     socketService.on("newMessage" as "message", handleNewMessage);
@@ -68,6 +92,7 @@ export function ChatWindow({ chat }: ChatWindowProps) {
           })
         );
         handleCloseImageModal();
+        refetchSingleChat(chat.id);
       })
       .catch((error) => {
         console.error("Error uploading image:", error);
@@ -86,11 +111,19 @@ export function ChatWindow({ chat }: ChatWindowProps) {
       })
     );
     setMessage("");
+    refetchSingleChat(chat.id);
   };
 
   const handleOpenImageModal = () => setIsImageModalOpen(true);
   const handleCloseImageModal = () => setIsImageModalOpen(false);
 
+  const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
+    const { scrollTop, scrollHeight, clientHeight } = e.currentTarget;
+    if (scrollHeight - scrollTop === clientHeight) {
+      authFetch.post(`/chats/${chat.id}/mark-all-as-read`, {});
+      refetchSingleChat(chat.id);
+    }
+  };
   if (!chat) return null;
 
   return (
@@ -102,7 +135,10 @@ export function ChatWindow({ chat }: ChatWindowProps) {
         </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-gray-950 pb-16 custom-scrollbar">
+      <div
+        className="flex-1 overflow-y-auto p-4 space-y-4 bg-gray-950 pb-16 custom-scrollbar"
+        onScroll={handleScroll}
+      >
         {messages?.map((msg) => {
           if (msg.type === "image") {
             return (

@@ -1,5 +1,6 @@
 import { X } from "lucide-react";
 import * as React from "react";
+import ReactDOM from "react-dom";
 import { cn } from "../../../lib/utils";
 
 export interface ToastProps extends React.HTMLAttributes<HTMLDivElement> {
@@ -15,11 +16,11 @@ const Toast = React.forwardRef<HTMLDivElement, ToastProps>(
       success: "bg-green-900/20 border-green-800 text-green-400",
     };
 
-    return (
+    const toastContent = (
       <div
         ref={ref}
         className={cn(
-          "relative rounded-lg border p-4 shadow-lg",
+          "absolute top-4 right-4 rounded-lg border p-4 shadow-lg",
           variantClasses[variant],
           className
         )}
@@ -36,6 +37,8 @@ const Toast = React.forwardRef<HTMLDivElement, ToastProps>(
         )}
       </div>
     );
+
+    return ReactDOM.createPortal(toastContent, document.body);
   }
 );
 Toast.displayName = "Toast";

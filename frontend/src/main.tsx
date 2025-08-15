@@ -10,6 +10,7 @@ import { RequireNoAuth } from "./features/auth/guards/RequireNoAuth.tsx";
 import { RequireAuth } from "./features/auth/guards/RequireAuth.tsx";
 import { UsersPage } from "./pages/UsersPage.tsx";
 import { SocketProvider } from "./socket/context/SocketContext.tsx";
+import { ChatsProvider } from "./features/chat/contexts/ChatsContext.tsx";
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
@@ -27,7 +28,9 @@ createRoot(document.getElementById("root")!).render(
               path="/chats"
               element={
                 <SocketProvider>
-                  <ChatsPage />
+                  <ChatsProvider>
+                    <ChatsPage />
+                  </ChatsProvider>
                 </SocketProvider>
               }
             />
