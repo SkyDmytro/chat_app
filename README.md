@@ -20,7 +20,7 @@ A full-stack real-time chat application built with NestJS (backend), React + Vit
 
 1. **Clone the repository:**
    ```bash
-   git clone <your-repo-url>
+   git clone https://github.com/SkyDmytro/chat_app.git
    cd chat
    ```
 

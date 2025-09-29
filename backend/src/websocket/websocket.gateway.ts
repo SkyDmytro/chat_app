@@ -109,7 +109,6 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
         data,
         client,
       );
-      console.log(parsedData);
       const user = this.websocketService.getUserFromClient(client);
 
       const chatId = this.websocketService.parseChatId(

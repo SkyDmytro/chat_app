@@ -3,7 +3,6 @@ import { type ImageResponse } from "../model/types";
 
 export const useUploadImage = () => {
   const uploadImage = async (file: File): Promise<ImageResponse> => {
-    console.log("Uploading image:", file);
     const formData = new FormData();
     formData.append("file", file);
 

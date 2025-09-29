@@ -14,14 +14,12 @@ export const useChatsPage = () => {
     socketService.on(
       "notification" as "message",
       (data: { type: string; content: string; chatId: number }) => {
-        console.log("Notification received:", data);
         showToast({
           title: "Notification",
           message: data.type === "text" ? data.content : "File",
           variant: "default",
         });
         refetchSingleChat(data.chatId);
-        console.log("notif", data);
       }
     );
   }, [socketService]);

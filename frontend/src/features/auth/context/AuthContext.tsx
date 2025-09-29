@@ -77,7 +77,6 @@ export const AuthProvider = ({ children }: PropsWithChildren) => {
     if (!auth) {
       try {
         const data = await getUser({ email, password });
-        console.log("Login successful:", data);
 
         setAuthToken(data.access_token);
         setAuth(data.access_token);

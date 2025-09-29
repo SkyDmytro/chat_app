@@ -44,7 +44,6 @@ export const UsersPage = () => {
   };
 
   const handleCreateChat = async (chatName: string) => {
-    console.log("Creating chat with user:", selectedUser);
     if (!selectedUser || !user) {
       return;
     }

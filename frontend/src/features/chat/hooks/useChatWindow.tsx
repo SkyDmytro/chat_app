@@ -14,7 +14,6 @@ export const useChatWindow = (chat: Chat) => {
   };
 
   useEffect(() => {
-    console.log("     ChatWindow mounted with chat:", chat);
     setMessages(chat.messages);
   }, [chat.messages]);
 
@@ -42,7 +41,6 @@ export const useChatWindow = (chat: Chat) => {
   useEffect(() => {
     const handleNewMessage = (data: { content: Message }) => {
       if (data.content.chat_id !== chat.id) return;
-      console.log(data);
       setMessages((prev = []) => {
         if (!prev.some((msg) => msg.id === data.content.id)) {
           return [...prev, data.content];

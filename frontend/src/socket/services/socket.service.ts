@@ -26,9 +26,7 @@ class SocketService {
 
     this.socket.connect();
 
-    this.socket.on("connect", () => {
-      console.log("Socket connected:", this.socket?.id);
-    });
+    this.socket.on("connect", () => {});
 
     this.socket.on("disconnect", (reason) => {
       console.warn("Socket disconnected:", reason);
